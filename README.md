@@ -2,23 +2,7 @@
 
 # User Stories / Scenario
 
-User story 1, Patient:
-
-I am a patient, and I would like to request my medication without visiting the pharmacy physically. I want to choose between pickup, home delivery, or locker pickup, so that I can receive my medication in the most convenient way for me.
-
-Acceptance criteria, uploading prescription:
-* The system allows image or PDF upload of a prescription.
-* The system performs a basic format check (file size, image clarity).
-* The prescription is forwarded to the pharmacy system in a structured format.
-* The patient receives a confirmation that the prescription was successfully submitted.
-
-Acceptance criteria, choosing a delivery option:
-* The system displays available delivery options.
-* The selected option is stored and forwarded to the pharmacy.
-* The patient receives a notification once the medication is ready and available via the selected method.
-  
-
-User story 2, Pharmacist:
+User story 1, Pharmacist:
 
 I am a pharmacist and I want to process medication orders digitally and efficiently to avoid manual document handling. I want the system to automatically check stock availability and handle ordering when medication is out of stock, so that patients receive their medication as quickly as possible.
 
