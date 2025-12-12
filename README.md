@@ -377,6 +377,9 @@ The database is designed to support:
 
 This allows realistic simulation of pharmacy operations and provides a foundation for future extensions.
 
+
+![dataschema](./image/db_schema.png)
+
 ---
 
 # How the services communicate (Process Variables)
