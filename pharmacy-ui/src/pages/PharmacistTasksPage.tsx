@@ -33,9 +33,15 @@ export default function PharmacistTasksPage() {
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h5" sx={{ fontWeight: 800 }}>
-        Pharmacist Tasklist
-      </Typography>
+      <Stack spacing={0.5}>
+        <Typography variant="h5" sx={{ fontWeight: 900 }}>
+          Pharmacist Tasklist
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Work through open user tasks and complete them.
+        </Typography>
+      </Stack>
+
 
       {error && (
         <Card>
@@ -76,12 +82,20 @@ export default function PharmacistTasksPage() {
 
                 </ListItemButton>
               ))}
-              {!tasks.length && <Typography color="text.secondary">No open tasks.</Typography>}
+              {!tasks.length && (
+                <Box sx={{ p: 2 }}>
+                  <Typography color="text.secondary">No open tasks.</Typography>
+                </Box>
+              )}
+
             </List>
           </CardContent>
         </Card>
 
-        <TaskDetail task={selected} userId={USER_ID} onDone={load} />
+        <Box sx={{ position: "sticky", top: 96, alignSelf: "start" }}>
+          <TaskDetail task={selected} userId={USER_ID} onDone={load} />
+        </Box>
+
       </Box>
     </Stack>
   );

@@ -1,5 +1,7 @@
 # AS25_Lotschberger
 
+![Logo](./image/logo.jpeg)
+
 This study project digitizes and automates a pharmacy prescription workflow using **Camunda 7** and **Python External Task Workers**.
 The main goal is automated prescription processing with a strong focus on **locker pickup**, enabling patients (customers) to collect their medication **outside pharmacy opening hours**.
 
