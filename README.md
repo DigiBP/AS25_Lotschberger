@@ -78,7 +78,7 @@ The locker option is the primary delivery method in this project:
 
 ---
 
-## AS-IS Process / TEST
+## AS-IS Process 
 
 The AS-IS process represents the current manual prescription workflow and is modeled as a BPMN diagram in Camunda.
 [Figure 1](#figure-1-as-is) illustrates the AS-IS process model.  
@@ -195,7 +195,7 @@ The BPMN models define the complete process logic, including the control flow, g
 
 - **System Tasks** are implemented as *External Service Tasks* and executed by Python workers.
 - **User Tasks** represent manual pharmacist interactions, such as ordering medication, preparing prescriptions, and marking medication as ready.
-- Process instances are started programmatically when prescription data is submitted and passed to Camunda as process variables.
+- **Process instances** are started programmatically when prescription data is submitted and passed to Camunda as process variables.
 
 Both BPMN models are included in this repository and represent the central artifacts of this project:
 
