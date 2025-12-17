@@ -213,6 +213,7 @@ The BPMN diagrams shown in this README are direct visual representations of thes
 All process logic, gateways, and task types described in the text are derived from the BPMN definitions stored in the `bpmn` folder.
 
 
+
 ### Focus on Locker Pickup
 
 While the process supports multiple delivery options, the **locker pickup scenario** represents the primary use case of this project.
@@ -235,9 +236,27 @@ If the prescription is invalid, the process is terminated.
 
 #### 2. Check Stock Availability (System Task)
 
-The system checks medication availability using the inventory database. Based on the result, a gateway determines the subsequent path of the process.  
-* If the medication is available, the process continues with reservation and preparation ([Step 3a](#3a-medication-available)).  
-* If the medication is not available, an ordering task is created ([Step 3b](#3b-medication-not-available)).
+The system checks medication availability using the inventory database and stores the result in the process variable `inStock` (boolean).
+
+Immediately afterwards, a DMN decision table (`FulfillmentDecision`) is evaluated 
+(see DMN model: [`diagram_2.dmn`](./bpmn/diagram_2.dmn)).
+ 
+Based on `inStock`, it sets the process variable `action`:
+
+- If `inStock = true`: `action = "RESERVE"`
+- If `inStock = false`: `action = "ORDER"`
+
+An exclusive BPMN gateway then routes the process according to `action`:
+
+* If `action = "RESERVE"`, the process continues with reservation and preparation ([Step 3a](#3a-medication-available)).  
+* If `action = "ORDER"`, an ordering task is created and the process continues after delivery registration ([Step 3b](#3b-medication-not-available)).
+
+> Note: This decision could also be modeled directly as an XOR gateway.  
+> The DMN was intentionally included for learning and demonstration purposes and to separate decision logic (DMN) from process flow (BPMN). 
+
+![BPMN TOBE WITHOUT DMN](./image/Prescription_Filling_TO-BE_without_DMN.png)
+
+
 
 #### 3a. Medication Available
 
