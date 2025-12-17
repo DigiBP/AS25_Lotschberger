@@ -389,10 +389,20 @@ The database supports the following core functionalities:
 
 ### Study Context
 
-In the context of this study project, the database is **minimally populated**.
+In the context of this project, the database is **minimally populated**.
 The primary focus lies on **process automation, BPMN orchestration, and system interaction**, rather than on comprehensive data modeling or large-scale data persistence.
 
 Nevertheless, the database schema reflects a realistic pharmacy setup and provides a solid foundation for future extensions.
+
+### Design Scope and Simplifications
+
+In a more comprehensive production-ready system, additional database entities such as Patients, Prescriptions and Lockers would typically be introduced.
+In particular, a dedicated Prescription table would allow structured storage of prescribed medication and dosage information and would also enable more advanced scenarios such as parallel processing of multiple prescriptions.
+
+For the scope of this project however such entities were intentionally not modeled in the database.
+This decision was made to keep the data layer lightweight and focused on process execution, while still allowing all necessary information to be available to downstream tasks and workers.
+
+Despite these simplifications, the chosen schema remains realistic, coherent and extensible.
 
 ---
 
