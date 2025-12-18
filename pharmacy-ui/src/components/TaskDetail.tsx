@@ -14,7 +14,6 @@ import { camunda } from "../api/camunda";
 import type { CamundaTask } from "../api/camunda";
 import Swal from "sweetalert2";
 
-
 type CamundaVarValue = { value: any; type?: string };
 type CamundaVars = Record<string, CamundaVarValue>;
 
@@ -24,11 +23,6 @@ function getVar(vars: CamundaVars, key: string) {
 
 function setVar(vars: CamundaVars, key: string, value: any, type?: string): CamundaVars {
   return { ...vars, [key]: { value, type } };
-}
-
-function isTaskGoneError(text: string) {
-  const m = text.toLowerCase();
-  return m.includes("cannot find task") || m.includes("task is null") || m.includes("not found");
 }
 
 export default function TaskDetail({
@@ -72,10 +66,8 @@ export default function TaskDetail({
     try {
       setLoading(true);
       await camunda.claimTask(t.id, userId);
-      // sofort reload, damit UI sicher aktuell ist
       window.location.reload();
     } catch {
-      // auch bei Fehler: reload (du willst keine Meldungen)
       window.location.reload();
     }
   }
@@ -83,7 +75,23 @@ export default function TaskDetail({
   async function complete() {
     try {
       setLoading(true);
-      await camunda.completeTask(t.id, vars);
+
+      //Defaults für NICHT-locker setzen, damit Prozess/Make nicht blockiert
+      let payloadVars = vars;
+
+      if (mode.includes("mark medication as ready")) {
+        if (delivery === "home") {
+          payloadVars = setVar(payloadVars, "lockerId", "home", "String");
+          payloadVars = setVar(payloadVars, "lockerCode", 0, "Integer");
+          setVarsState(payloadVars);
+        } else if (delivery === "pickup") {
+          payloadVars = setVar(payloadVars, "lockerId", "pharmacy", "String");
+          payloadVars = setVar(payloadVars, "lockerCode", 0, "Integer");
+          setVarsState(payloadVars);
+        }
+      }
+
+      await camunda.completeTask(t.id, payloadVars);
 
       await Swal.fire({
         icon: "success",
@@ -94,7 +102,7 @@ export default function TaskDetail({
       });
 
       window.location.reload();
-    } catch (e: any) {      
+    } catch {
       await Swal.fire({
         icon: "success",
         title: "Task abgeschlossen",
@@ -107,7 +115,6 @@ export default function TaskDetail({
       setLoading(false);
     }
   }
-
 
   return (
     <Card>
@@ -137,13 +144,21 @@ export default function TaskDetail({
               <TextField label="Medication" value={getVar(vars, "medicationName")} InputProps={{ readOnly: true }} />
               <TextField label="Quantity" value={getVar(vars, "quantity")} InputProps={{ readOnly: true }} />
 
-              <TextField label="Preferred delivery" value={getVar(vars, "preferredDelivery")} InputProps={{ readOnly: true }} />
+              <TextField
+                label="Preferred delivery"
+                value={getVar(vars, "preferredDelivery")}
+                InputProps={{ readOnly: true }}
+              />
               <TextField label="Doctor" value={getVar(vars, "doctorName")} InputProps={{ readOnly: true }} />
 
               <TextField label="Patient name" value={getVar(vars, "patientName")} InputProps={{ readOnly: true }} />
               <TextField label="Patient email" value={getVar(vars, "patientEmail")} InputProps={{ readOnly: true }} />
 
-              <TextField label="Insurance number" value={getVar(vars, "insuranceNumber")} InputProps={{ readOnly: true }} />
+              <TextField
+                label="Insurance number"
+                value={getVar(vars, "insuranceNumber")}
+                InputProps={{ readOnly: true }}
+              />
               <TextField label="Date prescribed" value={getVar(vars, "datePrescribed")} InputProps={{ readOnly: true }} />
 
               <TextField label="Order ID" value={getVar(vars, "orderId")} InputProps={{ readOnly: true }} />
@@ -180,18 +195,29 @@ export default function TaskDetail({
                 Mark medication as ready
               </Typography>
 
-              {delivery === "locker" && (
+              {delivery === "locker" ? (
                 <>
                   <TextField
                     label="Locker ID"
                     value={getVar(vars, "lockerId")}
                     onChange={(e) => setVarsState((v) => setVar(v, "lockerId", e.target.value, "String"))}
+                    placeholder="e.g. L-204"
                   />
                   <TextField
                     label="Locker code / PIN"
                     value={getVar(vars, "lockerCode")}
                     onChange={(e) => setVarsState((v) => setVar(v, "lockerCode", e.target.value, "String"))}
+                    placeholder="e.g. 839201"
                   />
+                </>
+              ) : (
+                <>
+                  <TextField
+                    label="Locker ID"
+                    value={delivery === "home" ? "home" : "pharmacy"}
+                    InputProps={{ readOnly: true }}
+                  />
+                  <TextField label="Locker code / PIN" value={"0"} InputProps={{ readOnly: true }} />
                 </>
               )}
 

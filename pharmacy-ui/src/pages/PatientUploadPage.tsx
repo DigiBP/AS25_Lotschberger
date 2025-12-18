@@ -16,12 +16,14 @@ import { camunda } from "../api/camunda";
 
 const PROCESS_KEY = "Process_0zaizu3";
 
+type DeliveryMethod = "locker" | "home" | "pickup";
+
 type DemoExtracted = {
   insuranceNumber: string;
   medicationName: string;
   quantity: number;
   datePrescribed: string;
-  preferredDelivery: "locker" | "delivery" | "pickup";
+  preferredDelivery: DeliveryMethod;
   prescriptionText: string;
   doctorName: string;
   patientEmail: string;
@@ -41,7 +43,7 @@ export default function PatientUploadPage() {
   const [medicationName, setMedicationName] = useState("");
   const [quantity, setQuantity] = useState<number>(1);
   const [datePrescribed, setDatePrescribed] = useState("");
-  const [preferredDelivery, setPreferredDelivery] = useState<"locker" | "delivery" | "pickup">("locker");
+  const [preferredDelivery, setPreferredDelivery] = useState<DeliveryMethod>("locker");
   const [prescriptionText, setPrescriptionText] = useState("");
   const [doctorName, setDoctorName] = useState("");
   const [patientEmail, setPatientEmail] = useState("");
@@ -50,12 +52,14 @@ export default function PatientUploadPage() {
 
   const hasUpload = !!uploadedFile;
 
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+
   const demoA: DemoExtracted = useMemo(
     () => ({
       insuranceNumber: "4",
       medicationName: "Ibuprofen 400",
       quantity: 1,
-      datePrescribed: new Date().toISOString().slice(0, 10),
+      datePrescribed: today,
       preferredDelivery: "locker",
       doctorName: "Lisa Marry",
       prescriptionText: "Ibufen 400mg 1-0-1",
@@ -63,7 +67,7 @@ export default function PatientUploadPage() {
       patientEmail: "patient@example.com",
       language: "en",
     }),
-    []
+    [today]
   );
 
   const demoB: DemoExtracted = useMemo(
@@ -71,15 +75,15 @@ export default function PatientUploadPage() {
       insuranceNumber: "7",
       medicationName: "Paracetamol 500",
       quantity: 2,
-      datePrescribed: new Date().toISOString().slice(0, 10),
-      preferredDelivery: "delivery",
+      datePrescribed: today,
+      preferredDelivery: "home", // ✅ was "delivery"
       doctorName: "Dr. Müller",
       prescriptionText: "Paracetamol 500mg 1-1-1",
       patientName: "Jane Demo",
       patientEmail: "jane.demo@example.com",
       language: "de",
     }),
-    []
+    [today]
   );
 
   function applyDemoData() {
@@ -117,8 +121,8 @@ export default function PatientUploadPage() {
     setLanguage("");
   }
 
-  function deliveryMessage(method: "locker" | "delivery" | "pickup") {
-    if (method === "delivery") {
+  function deliveryMessage(method: DeliveryMethod) {
+    if (method === "home") {
       return "You will get a notification when the delivery is on its way.";
     }
     // locker + pickup
@@ -139,7 +143,7 @@ export default function PatientUploadPage() {
         medicationName: { value: medicationName, type: "String" },
         quantity: { value: quantity, type: "Integer" },
         datePrescribed: { value: datePrescribed, type: "String" },
-        preferredDelivery: { value: preferredDelivery, type: "String" },
+        preferredDelivery: { value: preferredDelivery, type: "String" }, // ✅ now "home"
         prescriptionText: { value: prescriptionText, type: "String" },
         doctorName: { value: doctorName, type: "String" },
         patientEmail: { value: patientEmail, type: "String" },
@@ -225,8 +229,16 @@ export default function PatientUploadPage() {
                   Extracted data (editable)
                 </Typography>
 
-                <TextField label="Insurance number" value={insuranceNumber} onChange={(e) => setInsuranceNumber(e.target.value)} />
-                <TextField label="Medication name" value={medicationName} onChange={(e) => setMedicationName(e.target.value)} />
+                <TextField
+                  label="Insurance number"
+                  value={insuranceNumber}
+                  onChange={(e) => setInsuranceNumber(e.target.value)}
+                />
+                <TextField
+                  label="Medication name"
+                  value={medicationName}
+                  onChange={(e) => setMedicationName(e.target.value)}
+                />
 
                 <TextField
                   label="Quantity"
@@ -248,10 +260,10 @@ export default function PatientUploadPage() {
                   select
                   label="Preferred delivery"
                   value={preferredDelivery}
-                  onChange={(e) => setPreferredDelivery(e.target.value as any)}
+                  onChange={(e) => setPreferredDelivery(e.target.value as DeliveryMethod)}
                 >
                   <MenuItem value="locker">Locker pickup</MenuItem>
-                  <MenuItem value="delivery">Home delivery</MenuItem>
+                  <MenuItem value="home">Home delivery</MenuItem> {/* ✅ was "delivery" */}
                   <MenuItem value="pickup">Pharmacy pickup</MenuItem>
                 </TextField>
 
