@@ -608,6 +608,9 @@ The following artifacts are included in the repository:
 * [Video](./video/video.mp4)
 * [Presentation](./presentation/AS25_Lotschberger.pdf)
 
+* Note: we also did a video with voice over, which you can access over this link
+click here: [(https://app.animaker.com/video/I45M3H8V9HUI3TSQ)]
+
 
 ### Microservices Deepnote
 
