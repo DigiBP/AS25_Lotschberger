@@ -1,14 +1,11 @@
 # AS25_Lotschberger
 
-https://github.com/user-attachments/assets/dd0b9225-ece6-40a3-be04-551cfa8d3417
-
-![Logo](./image/logo.jpeg)
-
-
 This study project digitizes and automates a pharmacy prescription workflow using **Camunda 7** and **Python External Task Workers**.
 The main goal is automated prescription processing with a strong focus on **locker pickup**, enabling patients (customers) to collect their medication **outside pharmacy opening hours**.
 
 Patients submit prescription data digitally (prototype). The system validates the input, checks stock availability, handles ordering if necessary, supports pharmacist preparation, and (planned) notifies the patient when the medication is ready in a locker.
+
+https://github.com/user-attachments/assets/dd0b9225-ece6-40a3-be04-551cfa8d3417
 
 ## Academic Context
 
@@ -48,11 +45,12 @@ We would like to thank our supervisors for their guidance and support throughout
     * [Goal](#goal)
     * [User Stories](#user-stories)
 * [TO-BE Process](#to-be-process)
-
     * [Key Features](#key-features)
     * [Camunda BPMN Workflow and Models](#camunda-bpmn-workflow-and-models)
     * [Focus on Locker Pickup](#focus-on-locker-pickup)
     * [TO-BE Workflow (Step-by-Step)](#to-be-workflow-step-by-step)
+* [Patient Notification via Make.com](#patient-notification-via-makecom-webhook-based-integration)
+    * [Delivery-Specific Notification Logic](#delivery-specific-notification-logic)
 * [Microservices](#microservices)
 
     * [Service 1: Validation & Stock Check Worker](#service-1-validation--stock-check-worker)
@@ -61,11 +59,14 @@ We would like to thank our supervisors for their guidance and support throughout
 * [Database](#database)
     * [Database Usage](#database-usage)
     * [Study Context](#study-context)
+    * [Design Scope and Simplifications](#design-scope-and-simplifications)
 
 * [How Services Communicate (Process Variables)](#how-services-communicate-process-variables)
 * [Run the Workflow](#run-the-workflow)
 * [Limitations](#limitations)
 * [Tools Used](#tools-used)
+* [Repository Artifacts](#repository-artifacts)
+* [Microservices Deepnote](#microservices-deepnote)
 * [Usage of AI](#usage-of-ai)
 
 ---
@@ -104,7 +105,7 @@ The corresponding BPMN file can be found in the repository under
 
 * Pharmacist / Pharmacy staff
 
-## Workflow
+### Workflow
 
 The current prescription process is largely manual:
 
@@ -306,7 +307,7 @@ In parallel, the medication is either placed into a locker, prepared for in-stor
 
 ## Patient Notification via Make.com (Webhook-based Integration)
 
-Patient notifications are implemented using **Make.com** as an external integration platform. Camunda triggers a **Webhook Connector** once the medication is marked as ready.
+Patient notifications are implemented using [Make.com](https://eu1.make.com/public/shared-scenario/pe6O2DDtsdZ/pharmalocker-as25-lotschberger) as an external integration platform. Camunda triggers a Webhook Connector once the medication is marked as ready.
 The webhook forwards all relevant process variables to Make.com, where message generation and delivery are handled.
 
 This approach was chosen to:
@@ -316,12 +317,13 @@ This approach was chosen to:
 * allow flexible message formats (HTML email, QR codes, attachments),
 * simulate real-world integration scenarios.
 
-The Make.com scenario is included in the repository as a [blueprint](./make/Integration%20Webhooks.blueprint.json), together with [Figure 5](#figure-2-to-be) illustrates the TO-BE process model.  
+The Make.com scenario is included in the repository as a [blueprint](./make/Integration%20Webhooks.blueprint.json). [Figure 4](#figure-4-make) illustrates the Make.com-based notification workflow used in the TO-BE process.
 
-<a id="figure-5-make"></a>
-![make](./image/make.png)
+<a id="figure-4-make"></a>
+![Make notification workflow](./image/make.png)
 
-*Figure 5: TO-BE BPMN model of the automated prescription process with locker-based pickup.*
+*Figure 4: Make.com scenario for delivery-specific patient notifications
+(locker pickup, pharmacy pickup, and home delivery).*
 
 
 ### Delivery-Specific Notification Logic
@@ -482,12 +484,12 @@ This service prepares all relevant information required for the pharmacist to pe
 The project includes a lightweight database layer to support medication stock management, reservations, and ordering within the TO-BE process.
 The database is used by the Python external task workers and serves as a technical foundation for process automation.
 
-[Figure 4](#figure-3-database) shows the database schema used in this project.
+[Figure 5](#figure-5-database) shows the database schema used in this project.
 
-<a id="figure-4-database"></a>
+<a id="figure-5-database"></a>
 ![Database schema](./image/db_schema.png)
 
-*Figure 4: Database schema for medication stock, reservations, and orders.*
+*Figure 5: Database schema for medication stock, reservations, and orders.*
 
 ### Database Usage
 
@@ -604,6 +606,7 @@ The following artifacts are included in the repository:
 * [Patient Frontend prototype screenshot](./image/patient_side_frontend.png)
 * [Pharmacist Frontend prototype screenshot](./image/Pharmacist_side_frontend.png)
 * [Video](./video/video.mp4)
+* [Presentation](./presentation/AS25_Lotschberger.pdf)
 
 
 ### Microservices Deepnote
@@ -619,3 +622,4 @@ In particular, **ChatGPT**, **Animaker** and **DeepL** were used to assist with 
 All architectural decisions, BPMN models, process logic, and implementations were designed and validated by the project team.
 The use of AI served as a productivity and quality support tool and does not replace the team’s own work.
 
+![Logo](./image/logo.jpeg)
