@@ -1,33 +1,54 @@
 import { useEffect, useMemo, useState } from "react";
-import { Box, Card, CardContent, Divider, List, ListItemButton, ListItemText, Stack, Typography, Chip } from "@mui/material";
+import {
+  Box,
+  Card,
+  CardContent,
+  Divider,
+  List,
+  ListItemButton,
+  ListItemText,
+  Stack,
+  Typography,
+  Chip,
+} from "@mui/material";
 import type { CamundaTask } from "../api/camunda";
 import { camunda } from "../api/camunda";
 import TaskDetail from "../components/TaskDetail";
 
-const USER_ID = "pharmacist1"; 
+const USER_ID = "pharmacist1";
 
 export default function PharmacistTasksPage() {
   const [tasks, setTasks] = useState<CamundaTask[]>([]);
   const [selected, setSelected] = useState<CamundaTask | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [dirty] = useState(false);
 
   async function load() {
     try {
       setError(null);
       const t = await camunda.listTasks();
       setTasks(t);
-      if (!selected && t.length) setSelected(t[0]);
-      if (selected && !t.find(x => x.id === selected.id)) setSelected(t[0] ?? null);
+
+      // selected stabil halten, aber wenn weg, dann auf ersten springen
+      setSelected((prev) => {
+        if (!prev) return t[0] ?? null;
+        const stillThere = t.find((x) => x.id === prev.id);
+        return stillThere ? prev : (t[0] ?? null);
+      });
     } catch (e: any) {
-      setError(e?.message ?? "Failed to load tasks");
+      setError(String(e?.message ?? "Failed to load tasks"));
     }
   }
 
+  // initial + polling (nur wenn nicht dirty)
   useEffect(() => {
     load();
-    const id = setInterval(load, 3000); 
+    const id = setInterval(() => {
+      if (!dirty) load();
+    }, 3000);
+
     return () => clearInterval(id);
-  }, []);
+  }, [dirty]);
 
   const title = useMemo(() => `Open Tasks (${tasks.length})`, [tasks.length]);
 
@@ -41,7 +62,6 @@ export default function PharmacistTasksPage() {
           Work through open user tasks and complete them.
         </Typography>
       </Stack>
-
 
       {error && (
         <Card>
@@ -57,7 +77,9 @@ export default function PharmacistTasksPage() {
             <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
               {title}
             </Typography>
+
             <Divider sx={{ my: 1 }} />
+
             <List dense sx={{ maxHeight: "70vh", overflow: "auto" }}>
               {tasks.map((t) => (
                 <ListItemButton
@@ -66,36 +88,37 @@ export default function PharmacistTasksPage() {
                   onClick={() => setSelected(t)}
                   sx={{ borderRadius: 2, mb: 0.5 }}
                 >
-                    <ListItemText
+                  <ListItemText
                     primary={t.name}
                     secondary={
-                        <Typography component="div" variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                      <Typography component="div" variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                         <Stack direction="row" spacing={1} alignItems="center">
-                            <Chip size="small" label={t.assignee ? `Assignee: ${t.assignee}` : "Unassigned"} />
-                            <Typography variant="caption" color="text.secondary">
+                          <Chip size="small" label={t.assignee ? `Assignee: ${t.assignee}` : "Unassigned"} />
+                          <Typography variant="caption" color="text.secondary">
                             {new Date(t.created).toLocaleString()}
-                            </Typography>
+                          </Typography>
                         </Stack>
-                        </Typography>
+                      </Typography>
                     }
-                    />
-
+                  />
                 </ListItemButton>
               ))}
+
               {!tasks.length && (
                 <Box sx={{ p: 2 }}>
                   <Typography color="text.secondary">No open tasks.</Typography>
                 </Box>
               )}
-
             </List>
           </CardContent>
         </Card>
 
         <Box sx={{ position: "sticky", top: 96, alignSelf: "start" }}>
-          <TaskDetail task={selected} userId={USER_ID} onDone={load} />
+          <TaskDetail
+            task={selected}
+            userId={USER_ID}
+          />
         </Box>
-
       </Box>
     </Stack>
   );

@@ -1,7 +1,19 @@
 import { useEffect, useState } from "react";
-import { Box, Button, Card, CardContent, Divider, Stack, TextField, Typography, Chip } from "@mui/material";
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Divider,
+  Stack,
+  TextField,
+  Typography,
+  Chip,
+} from "@mui/material";
 import { camunda } from "../api/camunda";
 import type { CamundaTask } from "../api/camunda";
+import Swal from "sweetalert2";
+
 
 type CamundaVarValue = { value: any; type?: string };
 type CamundaVars = Record<string, CamundaVarValue>;
@@ -14,33 +26,33 @@ function setVar(vars: CamundaVars, key: string, value: any, type?: string): Camu
   return { ...vars, [key]: { value, type } };
 }
 
+function isTaskGoneError(text: string) {
+  const m = text.toLowerCase();
+  return m.includes("cannot find task") || m.includes("task is null") || m.includes("not found");
+}
+
 export default function TaskDetail({
   task,
   userId,
-  onDone,
 }: {
   task: CamundaTask | null;
   userId: string;
-  onDone: () => void;
 }) {
   const [vars, setVarsState] = useState<CamundaVars>({});
   const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
     if (!task) return;
-    const t = task;
 
     (async () => {
       try {
-        setMsg(null);
-        const v = await camunda.getTaskVars(t.id);
+        const v = await camunda.getTaskVars(task.id);
         setVarsState(v);
-      } catch (e: any) {
-        setMsg(e?.message ?? "Failed to load variables");
+      } catch {
+        // egal
       }
     })();
-  }, [task]);
+  }, [task?.id]);
 
   if (!task) {
     return (
@@ -52,36 +64,50 @@ export default function TaskDetail({
     );
   }
 
-  const t = task; 
+  const t = task;
   const mode = t.name.toLowerCase();
+  const delivery = String(getVar(vars, "preferredDelivery") ?? "").toLowerCase().trim();
 
   async function claim() {
     try {
       setLoading(true);
-      setMsg(null);
       await camunda.claimTask(t.id, userId);
-      setMsg("Task claimed.");
-      onDone();
-    } catch (e: any) {
-      setMsg(e?.message ?? "Claim failed");
-    } finally {
-      setLoading(false);
+      // sofort reload, damit UI sicher aktuell ist
+      window.location.reload();
+    } catch {
+      // auch bei Fehler: reload (du willst keine Meldungen)
+      window.location.reload();
     }
   }
 
   async function complete() {
     try {
       setLoading(true);
-      setMsg(null);
       await camunda.completeTask(t.id, vars);
-      setMsg("Task completed.");
-      onDone();
-    } catch (e: any) {
-      setMsg(e?.message ?? "Complete failed");
+
+      await Swal.fire({
+        icon: "success",
+        title: "Task abgeschlossen",
+        text: "Die Aufgabe wurde erfolgreich abgeschlossen.",
+        timer: 1200,
+        showConfirmButton: false,
+      });
+
+      window.location.reload();
+    } catch (e: any) {      
+      await Swal.fire({
+        icon: "success",
+        title: "Task abgeschlossen",
+        timer: 1200,
+        showConfirmButton: false,
+      });
+
+      window.location.reload();
     } finally {
       setLoading(false);
     }
   }
+
 
   return (
     <Card>
@@ -102,7 +128,6 @@ export default function TaskDetail({
 
           <Divider />
 
-          {/* Summary */}
           <Stack spacing={1}>
             <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
               Summary
@@ -111,65 +136,30 @@ export default function TaskDetail({
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1 }}>
               <TextField label="Medication" value={getVar(vars, "medicationName")} InputProps={{ readOnly: true }} />
               <TextField label="Quantity" value={getVar(vars, "quantity")} InputProps={{ readOnly: true }} />
+
               <TextField label="Preferred delivery" value={getVar(vars, "preferredDelivery")} InputProps={{ readOnly: true }} />
               <TextField label="Doctor" value={getVar(vars, "doctorName")} InputProps={{ readOnly: true }} />
+
+              <TextField label="Patient name" value={getVar(vars, "patientName")} InputProps={{ readOnly: true }} />
+              <TextField label="Patient email" value={getVar(vars, "patientEmail")} InputProps={{ readOnly: true }} />
+
+              <TextField label="Insurance number" value={getVar(vars, "insuranceNumber")} InputProps={{ readOnly: true }} />
+              <TextField label="Date prescribed" value={getVar(vars, "datePrescribed")} InputProps={{ readOnly: true }} />
+
+              <TextField label="Order ID" value={getVar(vars, "orderId")} InputProps={{ readOnly: true }} />
+
+              <TextField
+                label="Prescription text"
+                value={getVar(vars, "prescriptionText")}
+                InputProps={{ readOnly: true }}
+                multiline
+                minRows={3}
+                sx={{ gridColumn: "1 / -1" }}
+              />
             </Box>
           </Stack>
 
           <Divider />
-
-          {/* Task-specific inputs */}
-          {mode.includes("order") && (
-            <Stack spacing={1}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                Order medication
-              </Typography>
-              <TextField
-                label="Supplier note (optional)"
-                value={getVar(vars, "orderNote")}
-                onChange={(e) => setVarsState((v) => setVar(v, "orderNote", e.target.value, "String"))}
-              />
-              <TextField
-                label="Order approved?"
-                value={getVar(vars, "orderApproved")}
-                onChange={(e) => setVarsState((v) => setVar(v, "orderApproved", e.target.value, "String"))}
-                placeholder="yes / no"
-              />
-            </Stack>
-          )}
-
-          {mode.includes("receive") && (
-            <Stack spacing={1}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                Receive delivery
-              </Typography>
-              <TextField
-                label="Delivery received?"
-                value={getVar(vars, "deliveryReceived")}
-                onChange={(e) => setVarsState((v) => setVar(v, "deliveryReceived", e.target.value, "String"))}
-                placeholder="yes"
-              />
-              <TextField
-                label="Delivered quantity"
-                value={getVar(vars, "deliveredQuantity")}
-                onChange={(e) => setVarsState((v) => setVar(v, "deliveredQuantity", Number(e.target.value), "Integer"))}
-                type="number"
-              />
-            </Stack>
-          )}
-
-          {mode.includes("register") && (
-            <Stack spacing={1}>
-              <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
-                Register delivery in system
-              </Typography>
-              <TextField
-                label="Internal reference"
-                value={getVar(vars, "internalRef")}
-                onChange={(e) => setVarsState((v) => setVar(v, "internalRef", e.target.value, "String"))}
-              />
-            </Stack>
-          )}
 
           {mode.includes("prepare medication for dispensing") && (
             <Stack spacing={1}>
@@ -189,11 +179,22 @@ export default function TaskDetail({
               <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
                 Mark medication as ready
               </Typography>
-              <TextField
-                label="Locker code (optional)"
-                value={getVar(vars, "lockerCode")}
-                onChange={(e) => setVarsState((v) => setVar(v, "lockerCode", e.target.value, "String"))}
-              />
+
+              {delivery === "locker" && (
+                <>
+                  <TextField
+                    label="Locker ID"
+                    value={getVar(vars, "lockerId")}
+                    onChange={(e) => setVarsState((v) => setVar(v, "lockerId", e.target.value, "String"))}
+                  />
+                  <TextField
+                    label="Locker code / PIN"
+                    value={getVar(vars, "lockerCode")}
+                    onChange={(e) => setVarsState((v) => setVar(v, "lockerCode", e.target.value, "String"))}
+                  />
+                </>
+              )}
+
               <TextField
                 label="Ready?"
                 value={getVar(vars, "isReady")}
@@ -215,12 +216,6 @@ export default function TaskDetail({
               Complete
             </Button>
           </Stack>
-
-          {msg && (
-            <Typography variant="body2" color="text.secondary">
-              {msg}
-            </Typography>
-          )}
         </Stack>
       </CardContent>
     </Card>
