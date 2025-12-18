@@ -1,6 +1,9 @@
 # AS25_Lotschberger
 
+https://github.com/user-attachments/assets/dd0b9225-ece6-40a3-be04-551cfa8d3417
+
 ![Logo](./image/logo.jpeg)
+
 
 This study project digitizes and automates a pharmacy prescription workflow using **Camunda 7** and **Python External Task Workers**.
 The main goal is automated prescription processing with a strong focus on **locker pickup**, enabling patients (customers) to collect their medication **outside pharmacy opening hours**.
@@ -180,8 +183,8 @@ The following features summarize the core capabilities of the automated prescrip
 * **Multiple delivery options**  
   The process supports `locker`, `pickup`, and `home` delivery, selected via the `preferredDelivery` process variable.
 
-* **Patient-ready notification (planned)**  
-  Patient notification via **Make.com** is currently under implementation and therefore not yet included in this repository.
+* **Patient-ready notification**  
+  Patient notification via **Make.com** with QR-Code to open Locker.
 
 * **Structured data handling**  
   The use of process variables and a database layer ensures traceability and supports future system integrations.
@@ -252,11 +255,12 @@ An exclusive BPMN gateway then routes the process according to `action`:
 * If `action = "ORDER"`, an ordering task is created and the process continues after delivery registration ([Step 3b](#3b-medication-not-available)).
 
 > Note: This decision could also be modeled directly as an XOR gateway.  
-> The DMN was intentionally included for learning and demonstration purposes and to separate decision logic (DMN) from process flow (BPMN). 
+> The DMN was intentionally included for learning and demonstration purposes and to separate decision logic (DMN) from process flow (BPMN). [Figure 3](#figure-3-dmn) shows the BPM Process without a DMN and with a XOR Gate.
 
-![BPMN TOBE WITHOUT DMN](./image/Prescription_Filling_TO-BE_without_DMN.png)
+<a id="figure-3-dmn"></a>
+![figure-3-dmn](./image/Prescription_Filling_TO-BE_without_DMN.png)
 
-
+*Figure 3: PM Process without a DMN and with a XOR Gate.*
 
 #### 3a. Medication Available
 
@@ -291,12 +295,118 @@ One branch handles patient notification, while the other branch handles the sele
 **Patient notification:**  
 Patient notification is via **Make.com**.  
 Depending on the selected delivery option, the patient will receive:
-- Locker pickup details, including locker ID and pickup code
+- Locker pickup details, including locker ID and QR-Code
 - Pickup confirmation during pharmacy opening hours
 - Home delivery status and delivery date
 
 **Logistics handling (conceptual):**  
 In parallel, the medication is either placed into a locker, prepared for in-store pickup, or handed over to a delivery service, depending on the selected delivery option.
+
+---
+
+## Patient Notification via Make.com (Webhook-based Integration)
+
+Patient notifications are implemented using **Make.com** as an external integration platform. Camunda triggers a **Webhook Connector** once the medication is marked as ready.
+The webhook forwards all relevant process variables to Make.com, where message generation and delivery are handled.
+
+This approach was chosen to:
+
+* decouple notification logic from the BPMN process,
+* avoid direct email logic inside Camunda,
+* allow flexible message formats (HTML email, QR codes, attachments),
+* simulate real-world integration scenarios.
+
+The Make.com scenario is included in the repository as a [blueprint](./make/Integration%20Webhooks.blueprint.json), together with [Figure 5](#figure-2-to-be) illustrates the TO-BE process model.  
+
+<a id="figure-5-make"></a>
+![make](./image/make.png)
+
+*Figure 5: TO-BE BPMN model of the automated prescription process with locker-based pickup.*
+
+
+### Delivery-Specific Notification Logic
+
+Depending on the selected delivery option (`preferredDelivery`), different notification messages are generated and sent to the patient.
+
+#### 1. Locker Pickup (Primary Use Case)
+
+For locker pickup, the patient receives a **QR-code based notification**:
+
+* Locker ID
+* QR code to open the locker
+* No PIN is sent (QR replaces PIN for improved usability)
+
+**Email example:**
+
+```
+Hello {{patientName}},
+
+Your medication is ready for pickup.
+
+Locker ID: {{lockerId}}
+
+Scan the QR code below to open your locker.
+You can collect your medication 24/7.
+
+Best regards,
+Your Pharmacy
+```
+
+The QR code is generated dynamically in Make.com and embedded directly into the email body.
+
+#### 2. Pharmacy Pickup (During Opening Hours)
+
+If Pharmacy `pickup` is selected, the patient receives a confirmation message informing them that the medication is ready for collection at the pharmacy counter:
+
+**Email example:**
+
+```
+Hello {{patientName}},
+
+Your medication is ready for pickup at the pharmacy.
+
+Pickup window: Mon–Fri 08:00–18:00.
+Please collect it during regular opening hours.
+
+Order: {{orderID}}
+
+Best regards,
+Your Pharmacy
+```
+
+#### 3. Home Delivery
+
+If `home` delivery is selected, the patient receives a delivery status notification:
+
+```
+Hello {{patientName}},
+
+Your medication has been prepared and will be delivered to your address.
+It will be delivered tomorrow.
+
+Best regards,
+Your Pharmacy
+```
+
+### Technical Notes
+
+* Notifications are triggered via a **Camunda HTTP Connector**
+* Make.com receives process variables such as:
+
+```
+{
+  "patientEmail": "${patientEmail}",
+  "patientName": "${patientName}",
+  "preferredDelivery": "${preferredDelivery}",
+  "orderId": "${orderId}",
+ "message": "Your medication is ready to pick up.",
+  "lockerId": "${lockerId}",
+  "lockerCode": "${lockerCode}"
+}
+```
+
+* No direct email configuration is required in Camunda
+* This setup simulates real-world event-driven system integration
 
 ---
 
@@ -372,12 +482,12 @@ This service prepares all relevant information required for the pharmacist to pe
 The project includes a lightweight database layer to support medication stock management, reservations, and ordering within the TO-BE process.
 The database is used by the Python external task workers and serves as a technical foundation for process automation.
 
-[Figure 3](#figure-3-database) shows the database schema used in this project.
+[Figure 4](#figure-3-database) shows the database schema used in this project.
 
-<a id="figure-3-database"></a>
+<a id="figure-4-database"></a>
 ![Database schema](./image/db_schema.png)
 
-*Figure 3: Database schema for medication stock, reservations, and orders.*
+*Figure 4: Database schema for medication stock, reservations, and orders.*
 
 ### Database Usage
 
@@ -474,16 +584,38 @@ The most relevant process variables are grouped as follows:
 * Camunda 7 (BPMN, External Tasks)
 * [Deepnote Python 3.9](https://deepnote.com/workspace/digitalization-in-business-processes-fdb77daf-844d-4688-b685-2e79b038f73c/project/Pharmacy-Prescription-Filling-9e724985-6ac4-47d7-8cf8-ff0d5f4d03cb?utm_content=9e724985-6ac4-47d7-8cf8-ff0d5f4d03cb)
 * REST APIs
-* Make.com 
+* [Make.com](https://eu1.make.com/public/shared-scenario/pe6O2DDtsdZ/pharmalocker-as25-lotschberger)
 * ChatGPT (AI-assisted coding and documentation support)
 * DeepL (language refinement)
 
 ---
 
+### Repository Artifacts
+
+The following artifacts are included in the repository:
+
+* [Make.com scenario blueprint (`.json`)](./make/Integration%20Webhooks.blueprint.json)
+* [Screenshots of the Make.com workflow](./image/make.png)
+* [BPMN model (AS-IS)](./bpmn/Prescription_Filing_AS_IS.bpmn)
+* [BPMN model image (AS-IS)](./image/Prescription_Filing_AS_IS.png)
+* [BPMN model image (TO-BE)](./image/Prescription_Filling_TO_BE.png)
+* [DMN decision table](./bpmn/diagram_2.dmn)
+* [Database schema](./image/db_schema.png)
+* [Patient Frontend prototype screenshot](./image/patient_side_frontend.png)
+* [Pharmacist Frontend prototype screenshot](./image/Pharmacist_side_frontend.png)
+* [Video](./video/video.mp4)
+
+
+### Microservices Deepnote
+
+* [Deepnote Python 3.9](https://deepnote.com/workspace/digitalization-in-business-processes-fdb77daf-844d-4688-b685-2e79b038f73c/project/Pharmacy-Prescription-Filling-9e724985-6ac4-47d7-8cf8-ff0d5f4d03cb?utm_content=9e724985-6ac4-47d7-8cf8-ff0d5f4d03cb)
+---
+
 ## Usage of AI
 
 Artificial intelligence tools were used as supportive aids during the development of this project.
-In particular, **ChatGPT** and **DeepL** were used to assist with coding, text formulation, language refinement, and conceptual clarification.
+In particular, **ChatGPT**, **Animaker** and **DeepL** were used to assist with coding, text formulation, language refinement, video creation and conceptual clarification.
 
 All architectural decisions, BPMN models, process logic, and implementations were designed and validated by the project team.
 The use of AI served as a productivity and quality support tool and does not replace the team’s own work.
+
